@@ -1,0 +1,449 @@
+```plaintext
+// File: app/src/main/java/com/sahyadri/vaanimaatu/MainActivity.kt
+package com.sahyadri.vaanimaatu
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Bundle
+import android.widget.Button
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
+import androidx.room.Room
+import com.google.android.material.slider.Slider
+
+class MainActivity : AppCompatActivity() {
+    private lateinit var feedbackManager: FeedbackManager
+    private lateinit var db: TaskDatabase
+    private var points = 0
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        // Initialize database
+        db = Room.databaseBuilder(applicationContext, TaskDatabase::class.java, "tasks-db").build()
+
+        // Initialize feedback manager
+        feedbackManager = FeedbackManager(this)
+
+        // Request audio permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
+        }
+
+        // UI elements
+        val startButton: Button = findViewById(R.id.startButton)
+        val stopButton: Button = findViewById(R.id.stopButton)
+        val taskSelector: Button = findViewById(R.id.taskSelector)
+        val delaySlider: Slider = findViewById(R.id.delaySlider)
+        val pointsText: TextView = findViewById(R.id.pointsText)
+
+        // Load points
+        points = getSharedPreferences("VaaniMaatuPrefs", MODE_PRIVATE).getInt("points", 0)
+        pointsText.text = "Points: $points"
+
+        // Feedback controls
+        startButton.setOnClickListener {
+            val delayMs = delaySlider.value.toInt()
+            feedbackManager.startDAF(delayMs) // Default to DAF; extend for FAF/MAF
+            Toast.makeText(this, "Feedback started", Toast.LENGTH_SHORT).show()
+        }
+
+        stopButton.setOnClickListener {
+            feedbackManager.stop()
+            points += 50 // Award points per session
+            getSharedPreferences("VaaniMaatuPrefs", MODE_PRIVATE).edit().putInt("points", points).apply()
+            pointsText.text = "Points: $points"
+            Toast.makeText(this, "Feedback stopped", Toast.LENGTH_SHORT).show()
+        }
+
+        // Task selection
+        taskSelector.setOnClickListener {
+            loadFragment(TaskFragment())
+        }
+    }
+
+    private fun loadFragment(fragment: Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, fragment)
+            .commit()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1 && grantResults.isNotEmpty() && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Audio permission required", Toast.LENGTH_LONG).show()
+            finish()
+        }
+    }
+}
+
+// File: app/src/main/java/com/sahyadri/vaanimaatu/FeedbackManager.kt
+package com.sahyadri.vaanimaatu
+
+import android.content.Context
+import android.content.pm.PackageManager
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.AudioTrack
+import android.media.MediaRecorder
+import androidx.core.content.ContextCompat
+import java.util.concurrent.LinkedBlockingQueue
+import kotlin.math.sin
+
+class FeedbackManager(private val context: Context) {
+    private var recorder: AudioRecord? = null
+    private var player: AudioTrack? = null
+    private val sampleRate = 44100
+    private val bufferSize = AudioRecord.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
+    private val queue = LinkedBlockingQueue<ByteArray>()
+
+    fun hasPermission(): Boolean = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+    fun startDAF(delayMs: Int) {
+        if (!hasPermission()) return
+        recorder = AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize)
+        player = AudioTrack(android.media.AudioManager.STREAM_MUSIC, sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize, AudioTrack.MODE_STREAM)
+        recorder?.startRecording()
+        player?.play()
+        Thread {
+            val buffer = ByteArray(bufferSize)
+            val delayFrames = (delayMs * sampleRate / 1000) / bufferSize
+            repeat(delayFrames) { queue.offer(ByteArray(bufferSize)) }
+            while (true) {
+                recorder?.read(buffer, 0, bufferSize)
+                queue.offer(buffer.clone())
+                player?.write(queue.poll(), 0, bufferSize)
+            }
+        }.start()
+    }
+
+    fun startFAF(pitchShift: Float) { // Simplified pitch shift (placeholder; use FFmpegKit for production)
+        if (!hasPermission()) return
+        recorder = AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize)
+        player = AudioTrack(android.media.AudioManager.STREAM_MUSIC, sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize, AudioTrack.MODE_STREAM)
+        recorder?.startRecording()
+        player?.play()
+        Thread {
+            val buffer = ByteArray(bufferSize)
+            while (true) {
+                recorder?.read(buffer, 0, bufferSize)
+                // Basic pitch shift: resample buffer (simplified; replace with FFmpegKit)
+                player?.write(buffer, 0, bufferSize)
+            }
+        }.start()
+    }
+
+    fun startMAF(noiseLevel: Float) {
+        if (!hasPermission()) return
+        recorder = AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize)
+        player = AudioTrack(android.media.AudioManager.STREAM_MUSIC, sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize, AudioTrack.MODE_STREAM)
+        recorder?.startRecording()
+        player?.play()
+        Thread {
+            val buffer = ByteArray(bufferSize)
+            val noise = generateWhiteNoise(bufferSize, noiseLevel)
+            while (true) {
+                recorder?.read(buffer, 0, bufferSize)
+                for (i in buffer.indices) {
+                    buffer[i] = (buffer[i] + noise[i]).toByte() // Mix noise
+                }
+                player?.write(buffer, 0, bufferSize)
+            }
+        }.start()
+    }
+
+    private fun generateWhiteNoise(size: Int, amplitude: Float): ByteArray {
+        val noise = ByteArray(size)
+        for (i in 0 until size step 2) {
+            val sample = (sin(i.toDouble()) * amplitude * 127).toInt()
+            noise[i] = sample.toByte()
+            noise[i + 1] = (sample shr 8).toByte()
+        }
+        return noise
+    }
+
+    fun stop() {
+        recorder?.stop(); recorder?.release()
+        player?.stop(); player?.release()
+        queue.clear()
+    }
+}
+
+// File: app/src/main/java/com/sahyadri/vaanimaatu/TaskFragment.kt
+package com.sahyadri.vaanimaatu
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+class TaskFragment : Fragment() {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_task, container, false)
+        val taskText: TextView = view.findViewById(R.id.taskText)
+        val taskImage: ImageView = view.findViewById(R.id.taskImage)
+        val taskButton: Button = view.findViewById(R.id.taskButton)
+
+        // Sample content (replace with your passages/images)
+        val passages = listOf("ಕನ್ನಡದಲ್ಲಿ ಒಂದು ಚಿಕ್ಕ ಕತೆ: ಒಮ್ಮೆ ಒಂದು ಕಾಡಿನಲ್ಲಿ...", "ಮಂಗಳೂರಿನ ದೇವಸ್ಥಾನವೊಂದರ ವಿವರ...")
+        val images = listOf("mangalore_temple.jpg", "idli_plate.jpg") // Place in assets/images
+        val prompts = listOf("ನಿಮ್ಮ ದಿನವನ್ನು ಕನ್ನಡದಲ್ಲಿ ವಿವರಿಸಿ")
+
+        // Example: Load reading task
+        taskText.text = passages[0]
+        taskImage.visibility = View.GONE
+
+        taskButton.setOnClickListener {
+            // Switch tasks (simplified; extend with UI selector)
+            taskText.text = prompts[0]
+            taskImage.visibility = View.VISIBLE
+            taskImage.setImageResource(R.drawable.placeholder) // Replace with asset loading
+        }
+
+        // Load from database
+        CoroutineScope(Dispatchers.Main).launch {
+            val db = Room.databaseBuilder(requireContext(), TaskDatabase::class.java, "tasks-db").build()
+            val tasks = db.taskDao().getAll()
+            if (tasks.isNotEmpty()) taskText.text = tasks[0].content
+        }
+
+        return view
+    }
+}
+
+// File: app/src/main/java/com/sahyadri/vaanimaatu/TaskDatabase.kt
+package com.sahyadri.vaanimaatu
+
+import androidx.room.Database
+import androidx.room.RoomDatabase
+
+@Database(entities = [TaskEntity::class], version = 1)
+abstract class TaskDatabase : RoomDatabase() {
+    abstract fun taskDao(): TaskDao
+}
+
+// File: app/src/main/java/com/sahyadri/vaanimaatu/TaskEntity.kt
+package com.sahyadri.vaanimaatu
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "tasks")
+data class TaskEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val type: String, // "reading", "naming", "conversation"
+    val content: String, // Passage text or image path
+    val metadata: String // JSON for additional info
+)
+
+// File: app/src/main/java/com/sahyadri/vaanimaatu/TaskDao.kt
+package com.sahyadri.vaanimaatu
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.Query
+
+@Dao
+interface TaskDao {
+    @Query("SELECT * FROM tasks")
+    suspend fun getAll(): List<TaskEntity>
+
+    @Insert
+    suspend fun insert(task: TaskEntity)
+}
+
+// File: app/src/main/res/layout/activity_main.xml
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#FFFFFF">
+
+    <TextView
+        android:id="@+id/titleText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ವಾಣಿಮಾತು - Voice Talk"
+        android:textSize="24sp"
+        android:textColor="#000000"
+        android:fontFamily="@font/noto_sans_kannada"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/startButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ಆರಂಭಿಸಿ (Start)"
+        android:textSize="18sp"
+        android:fontFamily="@font/noto_sans_kannada"
+        android:backgroundTint="#4CAF50"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/stopButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ನಿಲ್ಲಿಸಿ (Stop)"
+        android:textSize="18sp"
+        android:fontFamily="@font/noto_sans_kannada"
+        android:backgroundTint="#F44336"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/taskSelector"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ಕಾರ್ಯ ಆಯ್ಕೆ (Select Task)"
+        android:textSize="18sp"
+        android:fontFamily="@font/noto_sans_kannada"
+        android:backgroundTint="#2196F3"
+        android:layout_marginBottom="16dp"/>
+
+    <com.google.android.material.slider.Slider
+        android:id="@+id/delaySlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="50"
+        android:valueTo="300"
+        android:value="100"
+        android:stepSize="10"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/pointsText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Points: 0"
+        android:textSize="18sp"
+        android:fontFamily="@font/noto_sans_kannada"
+        android:layout_marginBottom="16dp"/>
+
+    <FrameLayout
+        android:id="@+id/fragmentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+</LinearLayout>
+
+// File: app/src/main/res/layout/fragment_task.xml
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/taskText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ಕನ್ನಡದಲ್ಲಿ ಓದಿ..."
+        android:textSize="18sp"
+        android:fontFamily="@font/noto_sans_kannada"
+        android:textColor="#000000"
+        android:layout_marginBottom="16dp"/>
+
+    <ImageView
+        android:id="@+id/taskImage"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:visibility="gone"
+        android:contentDescription="Task Image"
+        android:scaleType="centerCrop"/>
+
+    <Button
+        android:id="@+id/taskButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ಮುಂದಿನ ಕಾರ್ಯ (Next Task)"
+        android:textSize="18sp"
+        android:fontFamily="@font/noto_sans_kannada"
+        android:backgroundTint="#2196F3"/>
+
+</LinearLayout>
+
+// File: app/src/main/res/values/strings.xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ವಾಣಿಮಾತು</string>
+    <string name="start">ಆರಂಭಿಸಿ</string>
+    <string name="stop">ನಿಲ್ಲಿಸಿ</string>
+    <string name="select_task">ಕಾರ್ಯ ಆಯ್ಕೆ</string>
+    <string name="next_task">ಮುಂದಿನ ಕಾರ್ಯ</string>
+</resources>
+
+// File: app/src/main/res/font/noto_sans_kannada.xml
+<?xml version="1.0" encoding="utf-8"?>
+<font-family xmlns:android="http://schemas.android.com/apk/res/android">
+    <font
+        android:fontStyle="normal"
+        android:fontWeight="400"
+        android:font="@font/noto_sans_kannada_regular"/>
+</font-family>
+
+// File: app/src/main/assets/fonts/NotoSansKannada-Regular.ttf
+// Download from: https://fonts.google.com/noto/specimen/Noto+Sans+Kannada
+// Place in assets/fonts/
+
+// File: app/src/main/AndroidManifest.xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.sahyadri.vaanimaatu">
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+
+// README.md (for GitHub)
+# VaaniMaatu
+Open-source speech feedback app for Kannada-speaking individuals with stuttering.
+
+## Installation
+1. Clone: `git clone https://github.com/sahyadri-team/vaanimaatu`
+2. Open in Android Studio.
+3. Add NotoSansKannada-Regular.ttf to `app/src/main/assets/fonts/`.
+4. Build and run on device/emulator (Min SDK 21).
+
+## Usage
+1. Grant microphone permission.
+2. Select task (reading, naming, conversation).
+3. Adjust delay (50-300ms) and start feedback.
+4. Earn points per session; track progress.
+
+## Contributing
+See CONTRIBUTING.md. Licensed under MIT.
+
+```
