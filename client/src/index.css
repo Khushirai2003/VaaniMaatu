@@ -1,176 +1,183 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* Warm South Indian inspired color palette */
-  --background: hsl(30, 40%, 97%);
-  --foreground: hsl(20, 30%, 15%);
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 30%, 15%);
-  --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(20, 30%, 15%);
-  --primary: hsl(16, 100%, 60%);
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(180, 100%, 25%);
-  --secondary-foreground: hsl(0, 0%, 100%);
-  --muted: hsl(30, 15%, 90%);
-  --muted-foreground: hsl(20, 10%, 45%);
-  --accent: hsl(42, 100%, 55%);
-  --accent-foreground: hsl(20, 30%, 15%);
-  --destructive: hsl(4, 90%, 58%);
-  --destructive-foreground: hsl(0, 0%, 100%);
-  --border: hsl(30, 20%, 85%);
-  --input: hsl(30, 20%, 85%);
-  --ring: hsl(16, 100%, 60%);
-  --chart-1: hsl(16, 100%, 60%);
-  --chart-2: hsl(180, 100%, 25%);
-  --chart-3: hsl(42, 100%, 55%);
-  --chart-4: hsl(147, 78%, 42%);
-  --chart-5: hsl(341, 75%, 51%);
-  --sidebar: hsl(0, 0%, 100%);
-  --sidebar-foreground: hsl(20, 30%, 15%);
-  --sidebar-primary: hsl(16, 100%, 60%);
-  --sidebar-primary-foreground: hsl(0, 0%, 100%);
-  --sidebar-accent: hsl(30, 15%, 90%);
-  --sidebar-accent-foreground: hsl(16, 100%, 60%);
-  --sidebar-border: hsl(30, 20%, 85%);
-  --sidebar-ring: hsl(16, 100%, 60%);
-  --font-sans: Inter, sans-serif;
-  --font-kannada: "Noto Sans Kannada", sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: Menlo, monospace;
-  --radius: 0.75rem;
-}
-
-.dark {
-  --background: hsl(20, 30%, 8%);
-  --foreground: hsl(30, 40%, 95%);
-  --card: hsl(20, 30%, 10%);
-  --card-foreground: hsl(30, 40%, 95%);
-  --popover: hsl(20, 30%, 10%);
-  --popover-foreground: hsl(30, 40%, 95%);
-  --primary: hsl(16, 100%, 55%);
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(180, 100%, 30%);
-  --secondary-foreground: hsl(0, 0%, 100%);
-  --muted: hsl(20, 20%, 15%);
-  --muted-foreground: hsl(30, 15%, 60%);
-  --accent: hsl(42, 100%, 50%);
-  --accent-foreground: hsl(20, 30%, 8%);
-  --destructive: hsl(4, 90%, 58%);
-  --destructive-foreground: hsl(0, 0%, 100%);
-  --border: hsl(20, 20%, 20%);
-  --input: hsl(20, 20%, 20%);
-  --ring: hsl(16, 100%, 55%);
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 20 14.3% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14.3% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14.3% 4.1%;
+    --primary: 20.5 90.2% 48.2%; /* Orange-500 */
+    --primary-foreground: 60 9.1% 97.8%;
+    --secondary: 33 100% 96.5%;
+    --secondary-foreground: 20 14.3% 4.1%;
+    --muted: 33 100% 96.5%;
+    --muted-foreground: 25 5.3% 44.7%;
+    --accent: 24.6 95% 53.1%; /* Orange-400 */
+    --accent-foreground: 20 14.3% 4.1%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 60 9.1% 97.8%;
+    --border: 20 5.9% 90%;
+    --input: 20 5.9% 90%;
+    --ring: 20.5 90.2% 48.2%; /* Orange-500 */
+    --radius: 0.75rem;
+    
+    /* Custom orange theme variables */
+    --orange-50: 33 100% 96.5%;
+    --orange-100: 34 100% 91.8%;
+    --orange-200: 32 97.5% 83.1%;
+    --orange-300: 31 97% 72.4%;
+    --orange-400: 27 96% 61%;
+    --orange-500: 20.5 90.2% 48.2%;
+    --orange-600: 16.8 88.7% 36.9%;
+    --orange-700: 15.3 86.1% 27.8%;
+    --orange-800: 15.2 81.8% 21.4%;
+    --orange-900: 15.3 74.6% 16.9%;
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
-    @apply font-sans antialiased bg-background text-foreground;
-  }
-
-  .kannada-text {
-    font-family: var(--font-kannada);
+    @apply bg-background text-foreground;
   }
 }
 
-@layer components {
-  .audio-wave {
-    width: 100%;
-    height: 120px;
-    background: linear-gradient(to right, hsl(16, 100%, 60%, 0.1), hsl(180, 100%, 25%, 0.1));
-    border-radius: var(--radius);
-    position: relative;
-    overflow: hidden;
-  }
+.kannada-text {
+  font-family: 'Noto Sans Kannada', sans-serif;
+  font-weight: 500;
+}
 
-  .wave-bar {
-    position: absolute;
-    bottom: 0;
-    width: 4px;
-    background: linear-gradient(to top, var(--primary), var(--secondary));
-    border-radius: 2px;
-    animation: wave 1.2s ease-in-out infinite;
-  }
+/* Enhanced typography for better readability */
+.text-gradient-orange {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-  @keyframes wave {
-    0%, 100% { height: 20%; }
-    50% { height: 80%; }
-  }
+.badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+}
 
-  .progress-ring {
-    transform: rotate(-90deg);
-  }
+.badge-primary {
+  @apply bg-orange-100 text-orange-800 border border-orange-200;
+}
 
-  .progress-ring-circle {
-    transition: stroke-dashoffset 0.35s;
-    stroke: var(--primary);
-  }
+/* Orange gradient utilities */
+.gradient-orange {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
 
-  .btn-primary {
-    @apply bg-primary text-primary-foreground hover:opacity-90 hover:transform hover:-translate-y-0.5 transition-all duration-200;
-  }
+.gradient-orange-light {
+  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+}
 
-  .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:opacity-90 hover:transform hover:-translate-y-0.5 transition-all duration-200;
-  }
+/* Custom button styles */
+.btn-orange {
+  @apply bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300;
+}
 
-  .card-hover {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
-  }
+/* Card hover effects */
+.card-orange-hover {
+  @apply hover:shadow-xl transition-all duration-300 border-2 border-orange-100 hover:border-orange-300 bg-white hover:bg-gradient-to-br hover:from-orange-50 hover:to-white;
+}
 
-  .lang-toggle {
-    position: relative;
-    width: 56px;
-    height: 28px;
-    background: var(--muted);
-    border-radius: 14px;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
+/* Global scrollbar styles */
+::-webkit-scrollbar {
+  width: 12px;
+}
 
-  .lang-toggle.active {
-    background: var(--primary);
-  }
+::-webkit-scrollbar-track {
+  background: linear-gradient(45deg, #fef7f7, #f0f9ff, #faf5ff);
+  border-radius: 8px;
+}
 
-  .lang-toggle-slider {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 24px;
-    height: 24px;
-    background: white;
-    border-radius: 50%;
-    transition: transform 0.3s;
-  }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1);
+  border-radius: 8px;
+  border: 2px solid #fef7f7;
+}
 
-  .lang-toggle.active .lang-toggle-slider {
-    transform: translateX(28px);
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #4ecdc4, #45b7d1, #96ceb4);
+}
 
-  .badge {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium;
+/* Loading animation for orange theme */
+@keyframes pulse-orange {
+  0%, 100% {
+    opacity: 1;
   }
+  50% {
+    opacity: 0.5;
+  }
+}
 
-  .badge-primary {
-    background: hsl(16, 100%, 60%, 0.15);
-    color: var(--primary);
-  }
+.animate-pulse-orange {
+  animation: pulse-orange 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
 
-  .badge-secondary {
-    background: hsl(180, 100%, 25%, 0.15);
-    color: var(--secondary);
-  }
+/* Focus styles for accessibility */
+.focus-orange:focus {
+  @apply outline-none ring-2 ring-orange-500 ring-offset-2;
+}
 
-  .badge-accent {
-    background: hsl(42, 100%, 55%, 0.15);
-    color: var(--accent);
+/* Colorful animations */
+@keyframes gradient-x {
+  0%, 100% {
+    transform: translateX(0%);
   }
+  50% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes rainbow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient-x {
+  background-size: 400% 400%;
+  animation: rainbow 3s ease infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Rainbow border utilities */
+.border-rainbow {
+  border-image: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7, #dda0dd) 1;
+}
+
+.border-gradient-to-r {
+  border-image: linear-gradient(to right, var(--tw-gradient-stops)) 1;
+}
+
+/* Rainbow background utilities */
+.bg-rainbow {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7, #dda0dd);
+}
+
+.from-rainbow-100 {
+  --tw-gradient-from: #fef7f7;
+}
+
+.to-rainbow {
+  --tw-gradient-to: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7, #dda0dd);
+}
+
+.from-rainbow {
+  --tw-gradient-from: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7, #dda0dd);
+}
+
+.ring-rainbow {
+  --tw-ring-color: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7, #dda0dd);
 }

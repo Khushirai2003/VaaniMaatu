@@ -1,225 +1,220 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { DAFProcessor } from "@/components/audio/daf-processor";
 import { useLanguage } from "@/hooks/use-language";
-import { culturalImages, type CulturalImage } from "@/data/cultural-images";
-import { ChevronLeft, ChevronRight, Play, Mic } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Image, Play, Pause } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 const DEMO_USER_ID = "demo-user";
 
-export function ImageNaming() {
+interface CulturalImage {
+  id: string;
+  url: string;
+  kannadaName: string;
+  englishName: string;
+  category: string;
+  description: string;
+  culturalSignificance: string;
+}
+
+export default function ImageNaming() {
   const { t, language } = useLanguage();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isNaming, setIsNaming] = useState(false);
-  const [sessionStart, setSessionStart] = useState<number | null>(null);
+  const [images, setImages] = useState<CulturalImage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sessionStarted, setSessionStarted] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [autoPlay, setAutoPlay] = useState(false);
 
-  const currentImage = culturalImages[currentImageIndex];
+  const { data: apiImages, isLoading, error: fetchError } = useQuery({
+    queryKey: ['/api/dataset-images'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/dataset-images?count=50');
+      const data = await response.json();
+      const uniqueImages = data.filter((image: CulturalImage, index: number, self: CulturalImage[]) => 
+        index === self.findIndex((img) => img.url === image.url)
+      );
+      return uniqueImages;
+    },
+  });
 
-  // Start naming session
+  useEffect(() => {
+    if (apiImages && Array.isArray(apiImages)) {
+      setImages(apiImages);
+      setLoading(false);
+    }
+    if (fetchError) {
+      setError('Failed to load images');
+      setLoading(false);
+    }
+  }, [apiImages, fetchError]);
+
+  useEffect(() => {
+    if (autoPlay && images.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % images.length);
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [autoPlay, images.length]);
+
   const startSessionMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest('POST', '/api/sessions', {
         userId: DEMO_USER_ID,
         type: 'naming',
-        exerciseId: currentImage.id,
-        dafSettings: { delayMs: 150, enabled: true },
+        exerciseId: 'image-naming-exercise',
       });
       return response.json();
     },
-    onSuccess: () => {
-      setIsNaming(true);
-      setSessionStart(Date.now());
+    onSuccess: (session) => {
+      setSessionId(session.id);
+      setSessionStarted(true);
+      setStartTime(new Date());
     },
   });
 
-  // End naming session
   const endSessionMutation = useMutation({
-    mutationFn: async (data: { sessionId: string; duration: number }) => {
-      const response = await apiRequest('PATCH', `/api/sessions/${data.sessionId}`, {
-        duration: data.duration,
-        points: Math.floor(data.duration / 1000 / 60) * 20, // 20 points per minute
+    mutationFn: async () => {
+      if (!sessionId || !startTime) return;
+      const duration = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
+      const response = await apiRequest('PATCH', `/api/sessions/${sessionId}`, {
+        duration: duration * 1000,
+        points: Math.floor(duration / 60) * 5 + (currentImageIndex + 1) * 2,
         completed: true,
-        fluencyScore: Math.floor(Math.random() * 30) + 70,
+        fluencyScore: Math.floor(Math.random() * 20) + 80,
       });
       return response.json();
     },
     onSuccess: () => {
-      setIsNaming(false);
-      setSessionStart(null);
+      setSessionStarted(false);
+      setSessionId(null);
+      setStartTime(null);
     },
   });
 
-  const handleStartNaming = () => {
-    startSessionMutation.mutate();
-  };
+  const handleStartSession = () => startSessionMutation.mutate();
+  const handleEndSession = () => endSessionMutation.mutate();
 
-  const handleSessionStart = () => {
-    // Already handled in startSessionMutation
-  };
-
-  const handleSessionEnd = (duration: number) => {
-    if (sessionStart && startSessionMutation.data?.id) {
-      const actualDuration = Date.now() - sessionStart;
-      endSessionMutation.mutate({ sessionId: startSessionMutation.data.id, duration: actualDuration });
-    }
-  };
-
-  const nextImage = () => {
-    if (currentImageIndex < culturalImages.length - 1) {
+  const handleNextImage = () => {
+    if (currentImageIndex < images.length - 1) {
       setCurrentImageIndex(currentImageIndex + 1);
+    } else {
+      if (sessionStarted) handleEndSession();
+      setCurrentImageIndex(0);
     }
   };
 
-  const prevImage = () => {
+  const handlePreviousImage = () => {
     if (currentImageIndex > 0) {
       setCurrentImageIndex(currentImageIndex - 1);
     }
   };
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI0NSUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzY2NzM4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
+  };
+
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') handlePreviousImage();
+      else if (e.key === 'ArrowRight') handleNextImage();
+      else if (e.key === ' ') {
+        e.preventDefault();
+        setAutoPlay(!autoPlay);
+      }
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentImageIndex, images.length, autoPlay]);
+
+  if (loading || isLoading) {
+    return (
+      <div className="flex items-center justify-center h-32">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-1 animate-pulse">
+            <Image className="w-4 h-4 text-white" />
+          </div>
+          <p className="text-gray-600 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !images.length) {
+    return (
+      <div className="flex items-center justify-center h-32">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-1">
+            <RefreshCw className="w-4 h-4 text-white" />
+          </div>
+          <p className="text-red-600 text-sm mb-1">{error || 'No images'}</p>
+          <Button onClick={() => window.location.reload()} size="sm">Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const currentImage = images[currentImageIndex];
+
   return (
-    <div className="space-y-6">
-      {/* Exercise Header */}
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-4 kannada-text">{t('exercise.naming')}</h2>
-        <p className="text-muted-foreground text-lg kannada-text max-w-2xl mx-auto">
-          ದಕ್ಷಿಣ ಭಾರತದ ಸಾಂಸ್ಕೃತಿಕ ಚಿತ್ರಗಳನ್ನು ವಿವರಿಸಿ ಮತ್ತು ಹೆಸರಿಸಿ
-        </p>
-      </div>
-
-      {/* Image Grid Preview */}
-      <div className="grid grid-cols-4 md:grid-cols-8 gap-2 mb-6">
-        {culturalImages.map((image, index) => (
-          <div
-            key={image.id}
-            className={`aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
-              index === currentImageIndex ? 'border-primary' : 'border-transparent hover:border-border'
-            }`}
-            onClick={() => setCurrentImageIndex(index)}
-            data-testid={`image-thumbnail-${index}`}
-          >
-            <img 
-              src={image.url} 
-              alt={image.englishName}
-              className="w-full h-full object-cover"
-            />
+    <div className="bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100 min-h-screen relative z-10 p-4 animate-gradient-x">
+      <div className="max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 gap-4 shadow-2xl rounded-2xl bg-gradient-to-br from-white via-blue-50 to-purple-50 border-4 border-gradient-to-r from-orange-300 via-pink-300 to-purple-300">
+        <div className="bg-gradient-to-r from-rainbow-100 via-yellow-100 to-green-100 rounded-xl p-4 border-3 border-gradient-to-r from-pink-400 via-purple-400 to-blue-400 shadow-xl animate-pulse-slow">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-lg font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">🎨 Images ({images.length})</span>
+            <Button onClick={() => setAutoPlay(!autoPlay)} variant="outline" size="sm" className="text-xs h-8 bg-gradient-to-r from-pink-400 to-purple-500 text-white border-0 hover:from-purple-500 hover:to-pink-500 shadow-lg transform hover:scale-105 transition-all">
+              {autoPlay ? <Pause className="w-2 h-2" /> : <Play className="w-2 h-2" />}
+            </Button>
           </div>
-        ))}
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Image Display */}
-        <div>
-          <Card className="overflow-hidden">
-            <img 
-              src={currentImage.url} 
-              alt={currentImage.englishName}
-              className="w-full h-80 object-cover"
-              data-testid="current-image"
-            />
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <h3 className="text-xl font-semibold kannada-text">
-                  {language === 'kannada' ? currentImage.kannadaName : currentImage.englishName}
-                </h3>
-                <Badge className="badge-accent text-xs">{currentImage.category}</Badge>
+          <div className="grid grid-cols-15 gap-2 max-h-16 overflow-y-auto bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 rounded-xl p-3 border-2 border-rainbow shadow-inner">
+            {images.map((img, idx) => (
+              <button key={`${img.id}-${idx}`} onClick={() => setCurrentImageIndex(idx)}
+                className={`aspect-square rounded-xl border-3 overflow-hidden transition-all duration-300 hover:scale-110 hover:rotate-2 ${
+                  idx === currentImageIndex ? 'border-gradient-to-r from-pink-500 to-purple-500 ring-4 ring-rainbow shadow-2xl transform scale-105' : 'border-gradient-to-r from-blue-300 to-green-300 hover:border-gradient-to-r hover:from-pink-400 hover:to-yellow-400'
+                }`}>
+                <img src={img.url} alt={img.englishName} className="w-full h-full object-cover" onError={handleImageError} />
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-8 p-6">
+          <Card className="p-0 shadow-2xl border-4 border-gradient-to-r from-rainbow rounded-2xl overflow-hidden transform hover:scale-102 transition-all duration-300">
+            <div className="text-center p-4 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 animate-gradient-x">
+              <div className="inline-flex items-center gap-3 bg-white/30 backdrop-blur-md text-white px-6 py-3 rounded-full text-base font-black shadow-2xl border border-white/20">
+                <Image className="w-4 h-4" />
+                {currentImageIndex + 1}/{images.length}
               </div>
-              <p className="text-sm text-muted-foreground mb-4 kannada-text">
-                {currentImage.description}
-              </p>
-              <p className="text-xs text-muted-foreground italic">
-                {currentImage.culturalSignificance}
-              </p>
+            </div>
+            <div className="h-80 bg-gradient-to-br from-rainbow-50 via-pink-50 to-purple-50 overflow-hidden relative">
+              <img key={currentImage.id} src={currentImage.url} alt={currentImage.englishName}
+                className="w-full h-full object-contain transition-transform duration-300 hover:scale-105" onError={handleImageError} />
+              <div className="absolute inset-0 bg-gradient-to-t from-rainbow/20 via-transparent to-rainbow/10 pointer-events-none"></div>
+              <div className="absolute top-2 right-2 w-4 h-4 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full animate-ping"></div>
             </div>
           </Card>
-
-          {/* Navigation */}
-          <div className="flex items-center justify-between mt-4">
-            <Button 
-              variant="outline" 
-              onClick={prevImage}
-              disabled={currentImageIndex === 0}
-              data-testid="prev-image-button"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            
-            <div className="text-center text-sm text-muted-foreground kannada-text" data-testid="image-counter">
-              ಚಿತ್ರ {currentImageIndex + 1} / {culturalImages.length}
-            </div>
-            
-            <Button 
-              variant="outline" 
-              onClick={nextImage}
-              disabled={currentImageIndex === culturalImages.length - 1}
-              data-testid="next-image-button"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+          
+          <div className="bg-gradient-to-br from-green-100 via-blue-100 to-purple-100 rounded-2xl p-6 border-4 border-gradient-to-r from-green-400 via-blue-400 to-purple-400 shadow-2xl transform hover:scale-102 transition-all">
+            <DAFProcessor onSessionStart={handleStartSession} onSessionEnd={handleEndSession}
+              onCorrectedSentence={(original, corrected) => console.log('Corrected:', { original, corrected })} />
           </div>
         </div>
-
-        {/* Exercise Controls */}
-        <div className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-xl font-bold mb-4 kannada-text">ಈ ಚಿತ್ರವನ್ನು ವಿವರಿಸಿ</h3>
-            <p className="text-muted-foreground mb-6 kannada-text">
-              DAF ಫೀಡ್‌ಬ್ಯಾಕ್ ಅನ್ನು ಬಳಸಿಕೊಂಡು ಚಿತ್ರದ ವಿವರವನ್ನು ಹೇಳಿ
-            </p>
-
-            {/* Suggested Prompts */}
-            <div className="bg-muted rounded-xl p-4 mb-6">
-              <h4 className="font-semibold mb-3 kannada-text text-sm">ಸೂಚನೆಗಳು:</h4>
-              <ul className="space-y-2 kannada-text text-sm">
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-1">•</span>
-                  <span>ಈ {currentImage.kannadaName}ದ ವಿವರವನ್ನು ಹೇಳಿ</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-1">•</span>
-                  <span>ಇದರ ಸಾಂಸ್ಕೃತಿಕ ಮಹತ್ವವನ್ನು ತಿಳಿಸಿ</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-1">•</span>
-                  <span>ನಿಮ್ಮ ಅನುಭವವನ್ನು ಹಂಚಿಕೊಳ್ಳಿ</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Session Controls */}
-            <div className="space-y-3">
-              <Button 
-                onClick={handleStartNaming}
-                disabled={isNaming || startSessionMutation.isPending}
-                className="w-full btn-primary py-4 flex items-center justify-center gap-2"
-                data-testid="start-naming-button"
-              >
-                <Play className="w-5 h-5" />
-                {isNaming ? 'ವಿವರಿಸುತ್ತಿದ್ದೇವೆ...' : 'ವಿವರಣೆ ಪ್ರಾರಂಭಿಸಿ'}
-              </Button>
-
-              {isNaming && (
-                <div className="text-center p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border-2 border-primary/20">
-                  <div className="flex items-center justify-center gap-2 text-primary font-medium mb-2">
-                    <Mic className="w-4 h-4" />
-                    <span className="kannada-text">ಸಕ್ರಿಯ ರೆಕಾರ್ಡಿಂಗ್</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground kannada-text">
-                    ಚಿತ್ರವನ್ನು ವಿವರಿಸಿ ಮತ್ತು DAF ಫೀಡ್‌ಬ್ಯಾಕ್ ಕೇಳಿ
-                  </div>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          <DAFProcessor 
-            onSessionStart={handleSessionStart}
-            onSessionEnd={handleSessionEnd}
-          />
+        
+        <div className="flex items-center justify-between p-6 bg-gradient-to-r from-yellow-100 via-pink-100 to-purple-100 rounded-b-2xl border-t-4 border-gradient-to-r from-rainbow">
+          <Button onClick={handlePreviousImage} disabled={currentImageIndex === 0} variant="outline" size="lg" className="bg-gradient-to-r from-blue-400 to-purple-500 text-white border-0 hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 shadow-xl transform hover:scale-105 transition-all">
+            <ChevronLeft className="w-4 h-4" /> Previous
+          </Button>
+          <Button onClick={handleNextImage} size="lg" className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 hover:from-blue-500 hover:via-purple-500 hover:to-pink-500 text-white shadow-2xl transform hover:scale-110 transition-all animate-pulse-slow">
+            {currentImageIndex === images.length - 1 ? 'Finish' : 'Next'} <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
+      </div>
       </div>
     </div>
   );

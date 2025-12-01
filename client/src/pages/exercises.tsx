@@ -3,20 +3,19 @@ import { useLocation } from "wouter";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { ReadingExercise } from "@/components/exercises/reading-exercise";
-import { ImageNaming } from "@/components/exercises/image-naming";
+import ImageNaming from "@/components/exercises/image-naming";
 import { ConversationPractice } from "@/components/exercises/conversation-practice";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/hooks/use-language";
-import { Book, Image, MessageCircle, Play } from "lucide-react";
+import { Book, Image, MessageCircle, Play, Sparkles } from "lucide-react";
 
 type ExerciseType = 'reading' | 'naming' | 'conversation';
 type ExerciseLevel = 'beginner' | 'intermediate' | 'advanced';
 
 export default function Exercises() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [location] = useLocation();
   const [activeExercise, setActiveExercise] = useState<ExerciseType>('reading');
   const [selectedLevel, setSelectedLevel] = useState<ExerciseLevel>('beginner');
@@ -39,60 +38,77 @@ export default function Exercises() {
     {
       id: 'reading' as ExerciseType,
       title: t('exercise.reading'),
-      description: 'ಕನ್ನಡ ಪ್ರಬಂಧಗಳನ್ನು ಓದಿ ಮತ್ತು ಅಭ್ಯಾಸ ಮಾಡಿ',
+      description: t('reading.subtitle'),
       icon: Book,
-      gradient: 'from-primary to-accent',
+      gradient: 'from-orange-400 via-red-500 to-pink-600',
       stats: { passages: '15+', levels: '3' }
     },
     {
       id: 'naming' as ExerciseType,
       title: t('exercise.naming'),
-      description: 'ದಕ್ಷಿಣ ಭಾರತೀಯ ಚಿತ್ರಗಳನ್ನು ವಿವರಿಸಿ',
+      description: t('naming.subtitle'),
       icon: Image,
-      gradient: 'from-secondary to-primary',
+      gradient: 'from-green-400 via-blue-500 to-purple-600',
       stats: { images: '50+', categories: '8' }
     },
     {
       id: 'conversation' as ExerciseType,
       title: t('exercise.conversation'),
-      description: 'ನೈಜ ಸಂವಾದಗಳನ್ನು ಅಭ್ಯಾಸ ಮಾಡಿ',
+      description: t('conversation.subtitle'),
       icon: MessageCircle,
-      gradient: 'from-accent to-secondary',
+      gradient: 'from-purple-400 via-pink-500 to-red-600',
       stats: { prompts: '25+', contexts: '6' }
     },
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100 pt-20 relative overflow-hidden">
+
       <Header />
       
-      <div className="container mx-auto px-4 py-8">
-        {/* Page Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 kannada-text">ಅಭ್ಯಾಸ ವಿಧಗಳು</h1>
-          <p className="text-muted-foreground text-lg kannada-text max-w-2xl mx-auto">
-            ನಿಮ್ಮ ವಾಕ್ ಸ್ಪಷ್ಟತೆಯನ್ನು ಸುಧಾರಿಸಲು ವಿವಿಧ ಅಭ್ಯಾಸಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ
-          </p>
+      {/* Hero Section */}
+      <section className="py-16 bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-1/4 w-48 h-48 bg-white rounded-full animate-pulse"></div>
+          <div className="absolute bottom-10 right-1/4 w-32 h-32 bg-yellow-300 rounded-full animate-bounce"></div>
         </div>
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 mb-4">
+              <Sparkles className="w-6 h-6 text-yellow-300 animate-pulse" />
+              <Badge className="bg-white/20 text-white px-4 py-2 rounded-full backdrop-blur-lg">
+                {language === 'kannada' ? '🎯 ಅಭ್ಯಾಸ ಕೇಂದ್ರ' : '🎯 Exercise Center'}
+              </Badge>
+            </div>
+            <h1 className={`text-5xl md:text-6xl font-black mb-6 text-black ${language === 'kannada' ? 'kannada-text' : ''}`}>
+              {t('home.exerciseTypes')}
+            </h1>
+            <p className={`text-white/90 text-xl max-w-3xl mx-auto leading-relaxed ${language === 'kannada' ? 'kannada-text' : ''}`}>
+              {t('home.exerciseTypesSubtitle')}
+            </p>
+          </div>
+        </div>
+      </section>
 
+      <div className="container mx-auto px-6 py-12 relative z-10">
         <Tabs value={activeExercise} onValueChange={(value) => setActiveExercise(value as ExerciseType)}>
           {/* Exercise Type Selection */}
-          <div className="mb-8">
-            <TabsList className="grid grid-cols-3 w-full max-w-4xl mx-auto h-auto p-1 bg-muted">
+          <div className="mb-12">
+            <TabsList className="grid grid-cols-3 w-full max-w-4xl mx-auto h-auto p-3 bg-gradient-to-r from-white/80 via-pink-50/80 to-purple-50/80 rounded-3xl border-2 border-pink-300 shadow-2xl">
               {exerciseTypes.map((exercise) => (
                 <TabsTrigger
                   key={exercise.id}
                   value={exercise.id}
-                  className="data-[state=active]:bg-card data-[state=active]:shadow-sm p-4 h-auto"
+                  className="data-[state=active]:bg-orange-100 data-[state=active]:shadow-lg p-6 h-auto rounded-2xl transition-all duration-300"
                   data-testid={`${exercise.id}-tab`}
                 >
-                  <div className="flex flex-col items-center gap-2">
-                    <div className={`w-12 h-12 bg-gradient-to-br ${exercise.gradient} rounded-lg flex items-center justify-center`}>
-                      <exercise.icon className="w-6 h-6 text-white" />
+                  <div className="flex flex-col items-center gap-3">
+                    <div className={`w-16 h-16 bg-gradient-to-br ${exercise.gradient} rounded-2xl flex items-center justify-center shadow-lg`}>
+                      <exercise.icon className="w-8 h-8 text-white" />
                     </div>
                     <div className="text-center">
-                      <div className="font-medium kannada-text text-sm">{exercise.title}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
+                      <div className={`font-bold text-black ${language === 'kannada' ? 'kannada-text' : ''}`}>{exercise.title}</div>
+                      <div className="text-sm text-white/70 mt-1">
                         {Object.entries(exercise.stats).map(([key, value], index) => (
                           <span key={key}>
                             {index > 0 && ' • '}
@@ -107,91 +123,69 @@ export default function Exercises() {
             </TabsList>
           </div>
 
-          {/* Level Selection for Reading */}
-          {activeExercise === 'reading' && (
-            <div className="mb-6 flex justify-center">
-              <div className="flex gap-2 p-1 bg-muted rounded-lg">
-                {[
-                  { id: 'beginner', label: 'ಪ್ರಾರಂಭಿಕ' },
-                  { id: 'intermediate', label: 'ಮಧ್ಯಮ' },
-                  { id: 'advanced', label: 'ಮುಂದುವರಿದ' }
-                ].map(level => (
-                  <Button
-                    key={level.id}
-                    variant={selectedLevel === level.id ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setSelectedLevel(level.id as ExerciseLevel)}
-                    className="kannada-text"
-                    data-testid={`level-${level.id}-button`}
-                  >
-                    {level.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
+
 
           {/* Exercise Content */}
           <TabsContent value="reading" className="mt-0">
-            <Card className="p-6">
-              <ReadingExercise level={selectedLevel} />
-            </Card>
+            <div className="p-8 bg-gradient-to-br from-white via-blue-50 to-purple-50 rounded-3xl border-4 border-blue-300 shadow-2xl">
+              <ReadingExercise />
+            </div>
           </TabsContent>
 
           <TabsContent value="naming" className="mt-0">
-            <Card className="p-6">
+            <div className="bg-gradient-to-br from-white via-pink-50 to-orange-50 rounded-3xl border-4 border-pink-300 shadow-2xl overflow-hidden">
               <ImageNaming />
-            </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="conversation" className="mt-0">
-            <Card className="p-6">
+            <div className="p-8 bg-gradient-to-br from-white via-green-50 to-blue-50 rounded-3xl border-4 border-green-300 shadow-2xl">
               <ConversationPractice />
-            </Card>
+            </div>
           </TabsContent>
         </Tabs>
 
         {/* Exercise Tips */}
-        <Card className="mt-8 p-6 bg-gradient-to-r from-primary/5 to-secondary/5">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center flex-shrink-0">
-              <Play className="w-6 h-6 text-white" />
+        <div className="mt-12 p-8 bg-orange-50 rounded-3xl border border-orange-200 shadow-2xl">
+          <div className="flex items-start gap-6">
+            <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
+              <Play className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-2 kannada-text">ಅಭ್ಯಾಸದ ಸಲಹೆಗಳು</h3>
-              <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-                <ul className="space-y-2 kannada-text">
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary mt-1">•</span>
-                    <span>ದಿನಕ್ಕೆ ಕನಿಷ್ಠ 15-20 ನಿಮಿಷಗಳ ಅಭ್ಯಾಸ ಮಾಡಿ</span>
+              <h3 className={`text-2xl font-bold mb-4 text-black ${language === 'kannada' ? 'kannada-text' : ''}`}>{t('tips.title')}</h3>
+              <div className="grid md:grid-cols-2 gap-6 text-orange-800">
+                <ul className={`space-y-3 ${language === 'kannada' ? 'kannada-text' : ''}`}>
+                  <li className="flex items-start gap-3">
+                    <span className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></span>
+                    <span>{t('tips.reading')}</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary mt-1">•</span>
-                    <span>DAF ಫೀಡ್‌ಬ್ಯಾಕ್ ಅನ್ನು ಯಾವಾಗಲೂ ಬಳಸಿ</span>
+                  <li className="flex items-start gap-3">
+                    <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></span>
+                    <span>{t('tips.naming')}</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary mt-1">•</span>
-                    <span>ನಿಧಾನವಾಗಿ ಮತ್ತು ಸ್ಪಷ್ಟವಾಗಿ ಮಾತನಾಡಿ</span>
+                  <li className="flex items-start gap-3">
+                    <span className="w-2 h-2 bg-orange-600 rounded-full mt-2 flex-shrink-0"></span>
+                    <span>{t('tips.conversation')}</span>
                   </li>
                 </ul>
-                <ul className="space-y-2 kannada-text">
-                  <li className="flex items-start gap-2">
-                    <span className="text-secondary mt-1">•</span>
-                    <span>ಪ್ರಾರಂಭಿಕ ಮಟ್ಟದಿಂದ ಪ್ರಾರಂಭಿಸಿ</span>
+                <ul className={`space-y-3 ${language === 'kannada' ? 'kannada-text' : ''}`}>
+                  <li className="flex items-start gap-3">
+                    <span className="w-2 h-2 bg-orange-300 rounded-full mt-2 flex-shrink-0"></span>
+                    <span>{language === 'kannada' ? 'ನಿಧಾನವಾಗಿ ಮತ್ತು ಸ್ಪಷ್ಟವಾಗಿ ಮಾತನಾಡಿ' : 'Speak slowly and clearly'}</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-secondary mt-1">•</span>
-                    <span>ಆರಾಮದಾಯಕ ವಾತಾವರಣದಲ್ಲಿ ಅಭ್ಯಾಸ ಮಾಡಿ</span>
+                  <li className="flex items-start gap-3">
+                    <span className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></span>
+                    <span>{language === 'kannada' ? 'ನಿಯಮಿತ ಅಭ್ಯಾಸ ಮಾಡಿ' : 'Practice regularly'}</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-secondary mt-1">•</span>
-                    <span>ನಿಯಮಿತವಾಗಿ ಪ್ರಗತಿಯನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ</span>
+                  <li className="flex items-start gap-3">
+                    <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></span>
+                    <span>{t('feedback.practiceMakesPerfect')}</span>
                   </li>
                 </ul>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
       </div>
 
       <Footer />

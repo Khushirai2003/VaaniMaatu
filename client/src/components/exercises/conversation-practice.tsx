@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { DAFProcessor } from "@/components/audio/daf-processor";
 import { useLanguage } from "@/hooks/use-language";
 import { conversationPrompts, type ConversationPrompt } from "@/data/kannada-content";
+import { englishConversationPrompts, type EnglishConversationPrompt } from "@/data/english-content";
 import { MessageCircle, Play, Square, RotateCcw, Home, Briefcase, Calendar, MapPin } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -19,8 +20,9 @@ interface ConversationMessage {
 }
 
 export function ConversationPractice() {
-  const { t } = useLanguage();
-  const [selectedPrompt, setSelectedPrompt] = useState<ConversationPrompt | null>(null);
+  const { t, language } = useLanguage();
+  const [selectedPrompt, setSelectedPrompt] = useState<ConversationPrompt | EnglishConversationPrompt | null>(null);
+  const prompts = language === 'kannada' ? conversationPrompts : englishConversationPrompts;
   const [isConversing, setIsConversing] = useState(false);
   const [sessionStart, setSessionStart] = useState<number | null>(null);
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
@@ -74,12 +76,12 @@ export function ConversationPractice() {
 
   // End conversation session
   const endSessionMutation = useMutation({
-    mutationFn: async (data: { sessionId: string; duration: number }) => {
+    mutationFn: async (data: { sessionId: string; duration: number; fluencyScore?: number }) => {
       const response = await apiRequest('PATCH', `/api/sessions/${data.sessionId}`, {
         duration: data.duration,
         points: Math.floor(data.duration / 1000 / 60) * 25, // 25 points per minute
         completed: true,
-        fluencyScore: Math.floor(Math.random() * 30) + 70,
+        fluencyScore: data.fluencyScore || 75, // Use provided score or default
       });
       return response.json();
     },
@@ -100,7 +102,7 @@ export function ConversationPractice() {
     }
   };
 
-  const handleSelectPrompt = (prompt: ConversationPrompt) => {
+  const handleSelectPrompt = (prompt: ConversationPrompt | EnglishConversationPrompt) => {
     setSelectedPrompt(prompt);
     setCurrentPromptIndex(0);
     setConversationHistory([
@@ -169,16 +171,16 @@ export function ConversationPractice() {
     <div className="space-y-6">
       {/* Exercise Header */}
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-4 kannada-text">{t('exercise.conversation')}</h2>
-        <p className="text-muted-foreground text-lg kannada-text max-w-2xl mx-auto">
-          ನೈಜ ಜೀವನದ ಸಂದರ್ಭಗಳಲ್ಲಿ ಮಾತನಾಡುವ ಅಭ್ಯಾಸ ಮಾಡಿ
-        </p>
+          <h2 className={`text-3xl font-bold mb-4 ${language === 'kannada' ? 'kannada-text' : ''}`}>{t('exercise.conversation')}</h2>
+          <p className={`text-muted-foreground text-lg max-w-2xl mx-auto ${language === 'kannada' ? 'kannada-text' : ''}`}>
+            {t('conversation.subtitle')}
+          </p>
       </div>
 
       {!selectedPrompt ? (
         // Conversation Prompt Selection
         <div className="grid md:grid-cols-2 gap-6">
-          {conversationPrompts.map((prompt) => {
+          {prompts.map((prompt) => {
             const IconComponent = getCategoryIcon(prompt.category);
             return (
               <Card 
@@ -192,13 +194,13 @@ export function ConversationPractice() {
                     <IconComponent className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold mb-2 kannada-text">{prompt.title}</h4>
-                    <p className="text-sm text-muted-foreground kannada-text mb-3">
-                      {prompt.description}
-                    </p>
-                    <Badge className="badge-primary text-xs">
-                      {prompt.prompts.length} ಪ್ರಶ್ನೆಗಳು
-                    </Badge>
+                      <h4 className={`font-semibold mb-2 ${language === 'kannada' ? 'kannada-text' : ''}`}>{language === 'kannada' ? prompt.title : (prompt as any).englishTitle || prompt.title}</h4>
+                      <p className={`text-sm text-muted-foreground mb-3 ${language === 'kannada' ? 'kannada-text' : ''}`}>
+                        {language === 'kannada' ? prompt.description : (prompt as any).englishDescription || prompt.description}
+                      </p>
+                      <Badge className="badge-primary text-xs">
+                        {prompt.prompts.length} {t('conversation.questions')}
+                      </Badge>
                   </div>
                 </div>
               </Card>
@@ -211,8 +213,8 @@ export function ConversationPractice() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-xl font-bold kannada-text">{selectedPrompt.title}</h3>
-                <p className="text-sm text-muted-foreground kannada-text">{selectedPrompt.description}</p>
+                  <h3 className={`text-xl font-bold ${language === 'kannada' ? 'kannada-text' : ''}`}>{language === 'kannada' ? selectedPrompt.title : (selectedPrompt as any).englishTitle || selectedPrompt.title}</h3>
+                  <p className={`text-sm text-muted-foreground ${language === 'kannada' ? 'kannada-text' : ''}`}>{language === 'kannada' ? selectedPrompt.description : (selectedPrompt as any).englishDescription || selectedPrompt.description}</p>
               </div>
               <Button
                 variant="outline"
@@ -221,7 +223,7 @@ export function ConversationPractice() {
                 data-testid="reset-conversation-button"
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
-                ಮರುಪ್ರಾರಂಭಿಸಿ
+                  {t('action.reset')}
               </Button>
             </div>
 
@@ -240,7 +242,7 @@ export function ConversationPractice() {
                         ? 'bg-card border border-border' 
                         : 'bg-primary/10 border border-primary/20 ml-auto'
                     }`}>
-                      <p className="kannada-text text-sm">{message.content}</p>
+                      <p className={`text-sm ${language === 'kannada' ? 'kannada-text' : ''}`}>{message.content}</p>
                       <div className="text-xs text-muted-foreground mt-1">
                         {message.timestamp.toLocaleTimeString('kn-IN', { 
                           hour: '2-digit', 
@@ -259,7 +261,7 @@ export function ConversationPractice() {
                   <div className="flex items-center justify-center p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border-2 border-primary/20">
                     <div className="flex items-center gap-2 text-primary font-medium">
                       <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                      <span className="kannada-text">ಮಾತನಾಡುತ್ತಿದ್ದೇವೆ...</span>
+                      <span className={`${language === 'kannada' ? 'kannada-text' : ''}`}>{t('session.recording') || 'Speaking...'}</span>
                     </div>
                   </div>
                 )}
@@ -276,7 +278,7 @@ export function ConversationPractice() {
                   data-testid="start-conversation-button"
                 >
                   <Play className="w-5 h-5" />
-                  ಮಾತನಾಡಲು ಪ್ರಾರಂಭಿಸಿ
+                  {t('conversation.startConversation')}
                 </Button>
               ) : (
                 <>
@@ -287,7 +289,7 @@ export function ConversationPractice() {
                     data-testid="next-prompt-button"
                   >
                     <MessageCircle className="w-5 h-5" />
-                    ಮುಂದಿನ ಪ್ರಶ್ನೆ
+                    {t('conversation.nextQuestion')}
                   </Button>
                   <Button
                     onClick={handleEndConversation}
@@ -296,7 +298,7 @@ export function ConversationPractice() {
                     data-testid="end-conversation-button"
                   >
                     <Square className="w-4 h-4" />
-                    ಮುಗಿಸಿ
+                    {t('conversation.endConversation')}
                   </Button>
                 </>
               )}
@@ -305,12 +307,12 @@ export function ConversationPractice() {
             {/* Session Info */}
             {isConversing && (
               <div className="mt-4 flex items-center justify-between text-sm border-t border-border pt-4">
-                <div className="flex items-center gap-2 text-muted-foreground kannada-text">
+                <div className={`flex items-center gap-2 text-muted-foreground ${language === 'kannada' ? 'kannada-text' : ''}`}>
                   <MessageCircle className="w-4 h-4" />
                   <span data-testid="conversation-duration">{formatDuration(sessionDuration)}</span>
                 </div>
-                <div className="text-primary font-medium kannada-text">
-                  ಪ್ರಶ್ನೆ {currentPromptIndex + 1} / {selectedPrompt.prompts.length}
+                <div className={`text-primary font-medium ${language === 'kannada' ? 'kannada-text' : ''}`}>
+                  {t('conversation.questions')} {currentPromptIndex + 1} / {selectedPrompt.prompts.length}
                 </div>
               </div>
             )}
@@ -325,33 +327,33 @@ export function ConversationPractice() {
 
             {/* Conversation Tips */}
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4 kannada-text">ಸಂಭಾಷಣೆ ಸಲಹೆಗಳು</h3>
+              <h3 className={`text-lg font-semibold mb-4 ${language === 'kannada' ? 'kannada-text' : ''}`}>{t('conversation.title')}</h3>
               
-              <div className="space-y-3 text-sm kannada-text">
+              <div className={`space-y-3 text-sm ${language === 'kannada' ? 'kannada-text' : ''}`}>
                 <div className="flex items-start gap-2">
                   <span className="text-primary mt-1">•</span>
-                  <span>ನೈಸರ್ಗಿಕವಾಗಿ ಮತ್ತು ಹರಿವಿನಲ್ಲಿ ಮಾತನಾಡಿ</span>
+                  <span>{t('tips.conversation')}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-primary mt-1">•</span>
-                  <span>DAF ಫೀಡ್‌ಬ್ಯಾಕ್ ಅನ್ನು ಕೇಳಿ ಮತ್ತು ವೇಗವನ್ನು ಸರಿಹೊಂದಿಸಿ</span>
+                  <span>{t('tips.daf') || t('tips.reading')}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-primary mt-1">•</span>
-                  <span>ಪ್ರತಿ ಪ್ರಶ್ನೆಗೆ ವಿಸ್ತಾರವಾಗಿ ಉತ್ತರಿಸಿ</span>
+                  <span>{t('conversation.speakNaturally')}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-primary mt-1">•</span>
-                  <span>ನಿಮ್ಮ ಅನುಭವಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಿ</span>
+                  <span>{t('naming.suggestion3')}</span>
                 </div>
               </div>
 
               {/* Cultural Context */}
               {selectedPrompt && (
                 <div className="mt-6 p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-2 kannada-text text-sm">ಸಾಂಸ್ಕೃತಿಕ ಸಂದರ್ಭ:</h4>
+                  <h4 className={`font-medium mb-2 text-sm ${language === 'kannada' ? 'kannada-text' : ''}`}>{t('cultural.context')}</h4>
                   <p className="text-xs text-muted-foreground italic">
-                    {selectedPrompt.culturalContext}
+                    {language === 'kannada' ? selectedPrompt.culturalContext : (selectedPrompt as any).englishCulturalContext || selectedPrompt.culturalContext}
                   </p>
                 </div>
               )}

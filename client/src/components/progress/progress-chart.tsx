@@ -1,12 +1,23 @@
 import { useMemo } from "react";
-import { Progress } from "@shared/schema";
+import { useLanguage } from "@/hooks/use-language";
+
+interface ProgressData {
+  date: string;
+  totalMinutes: number;
+  points: number;
+  exercisesCompleted: number;
+}
 
 interface ProgressChartProps {
-  data: Progress[];
+  data: ProgressData[];
 }
 
 export function ProgressChart({ data }: ProgressChartProps) {
-  const weekDays = ['ಭಾನು', 'ಸೋಮ', 'ಮಂಗಳ', 'ಬುಧ', 'ಗುರು', 'ಶುಕ್ರ', 'ಶನಿ'];
+  const { language } = useLanguage();
+
+  const kannadaWeekDays = ['ಭಾನು', 'ಸೋಮ', 'ಮಂಗಳ', 'ಬುಧ', 'ಗುರು', 'ಶುಕ್ರ', 'ಶನಿ'];
+  const englishWeekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekDays = language === 'kannada' ? kannadaWeekDays : englishWeekDays;
   
   const chartData = useMemo(() => {
     // Create array for last 7 days
@@ -40,10 +51,10 @@ export function ProgressChart({ data }: ProgressChartProps) {
         const isToday = day.date === new Date().toISOString().split('T')[0];
         
         return (
-          <div key={day.date} className="flex items-center gap-3">
-            <div className={`w-16 text-sm kannada-text ${isToday ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>
-              {day.dayName}
-            </div>
+            <div key={day.date} className="flex items-center gap-3">
+              <div className={`w-16 text-sm ${language === 'kannada' ? 'kannada-text' : ''} ${isToday ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>
+                {day.dayName}
+              </div>
             <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
               <div 
                 className={`h-full rounded-full flex items-center justify-end px-3 transition-all duration-500 ${
@@ -56,7 +67,7 @@ export function ProgressChart({ data }: ProgressChartProps) {
               >
                 {day.minutes > 0 && (
                   <span className="text-xs font-medium text-white">
-                    {day.minutes} ನಿಮಿಷ
+                    {day.minutes} {language === 'kannada' ? 'ನಿಮಿಷ' : 'min'}
                   </span>
                 )}
               </div>
@@ -77,11 +88,11 @@ export function ProgressChart({ data }: ProgressChartProps) {
       <div className="flex items-center justify-center gap-6 pt-4 border-t border-border text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-gradient-to-r from-primary to-accent rounded-full"></div>
-          <span className="kannada-text">ಸಾಮಾನ್ಯ ದಿನಗಳು</span>
+          <span className={`${language === 'kannada' ? 'kannada-text' : ''}`}>{language === 'kannada' ? 'ಸಾಮಾನ್ಯ ದಿನಗಳು' : 'Regular days'}</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-gradient-to-r from-secondary to-primary rounded-full"></div>
-          <span className="kannada-text">ಇಂದು</span>
+          <span className={`${language === 'kannada' ? 'kannada-text' : ''}`}>{language === 'kannada' ? 'ಇಂದು' : 'Today'}</span>
         </div>
       </div>
 
@@ -91,19 +102,19 @@ export function ProgressChart({ data }: ProgressChartProps) {
           <div className="text-lg font-bold text-primary" data-testid="week-total-minutes">
             {chartData.reduce((sum, day) => sum + day.minutes, 0)}
           </div>
-          <div className="text-xs text-muted-foreground kannada-text">ಒಟ್ಟು ನಿಮಿಷಗಳು</div>
+          <div className={`text-xs text-muted-foreground ${language === 'kannada' ? 'kannada-text' : ''}`}>{language === 'kannada' ? 'ಒಟ್ಟು ನಿಮಿಷಗಳು' : 'Total minutes'}</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-secondary" data-testid="week-total-points">
             {chartData.reduce((sum, day) => sum + day.points, 0)}
           </div>
-          <div className="text-xs text-muted-foreground kannada-text">ಒಟ್ಟು ಅಂಕಗಳು</div>
+          <div className={`text-xs text-muted-foreground ${language === 'kannada' ? 'kannada-text' : ''}`}>{language === 'kannada' ? 'ಒಟ್ಟು ಅಂಕಗಳು' : 'Total points'}</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-accent" data-testid="week-active-days">
             {chartData.filter(day => day.minutes > 0).length}
           </div>
-          <div className="text-xs text-muted-foreground kannada-text">ಸಕ್ರಿಯ ದಿನಗಳು</div>
+          <div className={`text-xs text-muted-foreground ${language === 'kannada' ? 'kannada-text' : ''}`}>{language === 'kannada' ? 'ಸಕ್ರಿಯ ದಿನಗಳು' : 'Active days'}</div>
         </div>
       </div>
     </div>
