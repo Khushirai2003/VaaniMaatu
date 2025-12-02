@@ -20,6 +20,16 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+model/.venv/
+
+# --- Model artifacts ---
+*.pth
+model/gpu_long_checkpoints/
+model/gpu_resume_checkpoints/
+model/gpu_test_checkpoints/
+model/test_checkpoints/
+model/gpu_logs/
+model/gpu_checkpoints/
 
 # --- Replit ---
 .replit
