@@ -38,6 +38,7 @@ Thumbs.db
 # --- Upload folders you added ---
 pdf-images/
 datasetimagesfornamingtask/
+datasetsimagesfornamingtask (1)/
 
 # --- Vite config ---
 vite.config.ts.*
