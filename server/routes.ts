@@ -221,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Remove duplicates and sort for consistent ordering
-      const uniqueFiles = [...new Set(files)].sort();
+      const uniqueFiles = Array.from(new Set(files)).sort();
       
       // Take the requested count or all available files
       const selectedFiles = uniqueFiles.slice(0, Math.min(count, uniqueFiles.length));

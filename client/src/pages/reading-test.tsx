@@ -16,7 +16,7 @@ export default function ReadingTest() {
             </p>
           </div>
           
-          <ReadingExercise level="beginner" />
+          <ReadingExercise />
         </div>
       </section>
       
