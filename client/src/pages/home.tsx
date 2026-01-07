@@ -25,8 +25,8 @@ export default function Home() {
   const { data: user } = useQuery({
     queryKey: ['/api/users', DEMO_USER_ID],
     queryFn: async () => {
-      const response = await apiRequest('POST', '/api/users', { username: 'demo-user' });
-      return response.json();
+      // Mock user creation for deployed version
+      return { id: DEMO_USER_ID, username: 'demo-user' };
     },
   });
 

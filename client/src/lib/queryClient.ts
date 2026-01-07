@@ -12,6 +12,18 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  // Mock API responses for deployed version without backend
+  if (url.startsWith('/api/sessions')) {
+    if (method === 'POST') {
+      // Mock session creation
+      const mockResponse = { sessionId: `mock-session-${Date.now()}` };
+      return new Response(JSON.stringify(mockResponse), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    } else if (method === 'PATCH') {
+      // Mock session update
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+  }
+
   const res = await fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},

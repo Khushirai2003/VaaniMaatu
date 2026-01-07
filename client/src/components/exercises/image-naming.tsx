@@ -33,12 +33,37 @@ export default function ImageNaming() {
   const { data: apiImages, isLoading, error: fetchError } = useQuery({
     queryKey: ['/api/dataset-images'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/dataset-images?count=50');
-      const data = await response.json();
-      const uniqueImages = data.filter((image: CulturalImage, index: number, self: CulturalImage[]) => 
-        index === self.findIndex((img) => img.url === image.url)
-      );
-      return uniqueImages;
+      // Mock data for deployed version without backend
+      const mockImages: CulturalImage[] = [
+        {
+          id: '1',
+          url: 'https://via.placeholder.com/300x200?text=Apple',
+          kannadaName: 'ಸೇಬು',
+          englishName: 'Apple',
+          category: 'Fruits',
+          description: 'A red fruit',
+          culturalSignificance: 'Common fruit'
+        },
+        {
+          id: '2',
+          url: 'https://via.placeholder.com/300x200?text=Cat',
+          kannadaName: 'ಬೆಕ್ಕು',
+          englishName: 'Cat',
+          category: 'Animals',
+          description: 'A domestic animal',
+          culturalSignificance: 'Pet animal'
+        },
+        {
+          id: '3',
+          url: 'https://via.placeholder.com/300x200?text=Car',
+          kannadaName: 'ಕಾರು',
+          englishName: 'Car',
+          category: 'Vehicles',
+          description: 'A vehicle',
+          culturalSignificance: 'Transportation'
+        }
+      ];
+      return mockImages;
     },
   });
 
