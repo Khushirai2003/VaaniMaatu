@@ -204,9 +204,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const count = parseInt(req.query.count as string) || 20;
       const imagesDir = path.join(__dirname, '..', 'datasetsimagesfornamingtask (1)');
       
+      // Check if directory exists
+      if (!fs.existsSync(imagesDir)) {
+        console.warn('Images directory does not exist:', imagesDir);
+        return res.json([]);
+      }
+      
       const files = fs.readdirSync(imagesDir).filter(file => 
         file.toLowerCase().endsWith('.jpg') || file.toLowerCase().endsWith('.jpeg') || file.toLowerCase().endsWith('.png')
       );
+      
+      // If no images found, return empty array
+      if (files.length === 0) {
+        console.warn('No images found in directory:', imagesDir);
+        return res.json([]);
+      }
       
       // Remove duplicates and sort for consistent ordering
       const uniqueFiles = [...new Set(files)].sort();
@@ -235,7 +247,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(uniqueImages);
     } catch (error) {
       console.error('Error getting dataset images:', error);
-      res.status(500).json({ error: 'Failed to get dataset images' });
+      // Return empty array instead of error to prevent UI breaking
+      res.json([]);
     }
   });
   

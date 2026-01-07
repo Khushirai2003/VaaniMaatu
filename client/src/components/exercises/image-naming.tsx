@@ -162,9 +162,9 @@ export default function ImageNaming() {
   const currentImage = images[currentImageIndex];
 
   return (
-    <div className="bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100 min-h-screen relative z-10 p-4 animate-gradient-x">
+    <div className="bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100 min-h-screen relative z-10 p-4 animate-gradient-x overflow-hidden">
       <div className="max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 gap-4 shadow-2xl rounded-2xl bg-gradient-to-br from-white via-blue-50 to-purple-50 border-4 border-gradient-to-r from-orange-300 via-pink-300 to-purple-300">
+      <div className="grid grid-cols-1 gap-4 shadow-2xl rounded-2xl bg-gradient-to-br from-white via-blue-50 to-purple-50 border-4 border-gradient-to-r from-orange-300 via-pink-300 to-purple-300 overflow-hidden">
         <div className="bg-gradient-to-r from-rainbow-100 via-yellow-100 to-green-100 rounded-xl p-4 border-3 border-gradient-to-r from-pink-400 via-purple-400 to-blue-400 shadow-xl animate-pulse-slow">
           <div className="flex items-center justify-between mb-3">
             <span className="text-lg font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">🎨 Images ({images.length})</span>
@@ -172,10 +172,10 @@ export default function ImageNaming() {
               {autoPlay ? <Pause className="w-2 h-2" /> : <Play className="w-2 h-2" />}
             </Button>
           </div>
-          <div className="grid grid-cols-15 gap-2 max-h-16 overflow-y-auto bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 rounded-xl p-3 border-2 border-rainbow shadow-inner">
+          <div className="flex gap-2 max-h-20 overflow-x-auto overflow-y-hidden bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 rounded-xl p-3 border-2 border-rainbow shadow-inner">
             {images.map((img, idx) => (
               <button key={`${img.id}-${idx}`} onClick={() => setCurrentImageIndex(idx)}
-                className={`aspect-square rounded-xl border-3 overflow-hidden transition-all duration-300 hover:scale-110 hover:rotate-2 ${
+                className={`flex-shrink-0 w-12 h-12 rounded-xl border-3 overflow-hidden transition-all duration-300 hover:scale-110 hover:rotate-2 ${
                   idx === currentImageIndex ? 'border-gradient-to-r from-pink-500 to-purple-500 ring-4 ring-rainbow shadow-2xl transform scale-105' : 'border-gradient-to-r from-blue-300 to-green-300 hover:border-gradient-to-r hover:from-pink-400 hover:to-yellow-400'
                 }`}>
                 <img src={img.url} alt={img.englishName} className="w-full h-full object-cover" onError={handleImageError} />

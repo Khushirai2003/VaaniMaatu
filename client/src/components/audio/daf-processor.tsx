@@ -183,7 +183,7 @@ export function DAFProcessor({ onSessionStart, onSessionEnd, referenceText, onCo
 
   return (
     <div 
-      className="bg-white rounded-3xl p-8 border border-gray-200 shadow-lg max-h-96 overflow-y-auto"
+      className="p-8 max-h-96 overflow-y-auto"
       style={{
         scrollbarWidth: 'auto',
         scrollbarColor: '#ea580c #fed7aa'
